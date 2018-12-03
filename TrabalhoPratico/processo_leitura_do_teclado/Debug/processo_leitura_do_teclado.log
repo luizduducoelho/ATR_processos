@@ -1,0 +1,5 @@
+﻿  processo_leitura_do_teclado.cpp
+c:\users\user\documents\atr\tp\trabalhopratico\processo_leitura_do_teclado\checkforerror.h(30): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+  processo_leitura_do_teclado.vcxproj -> C:\Users\User\Documents\atr\tp\TrabalhoPratico\Debug\processo_leitura_do_teclado.exe
+  processo_leitura_do_teclado.vcxproj -> C:\Users\User\Documents\atr\tp\TrabalhoPratico\Debug\processo_leitura_do_teclado.pdb (Full PDB)
