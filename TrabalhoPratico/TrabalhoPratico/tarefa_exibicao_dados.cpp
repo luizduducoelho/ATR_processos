@@ -374,7 +374,7 @@ DWORD WINAPI ThreadLeituraCLP(int i) {
 DWORD WINAPI ThreadLeituraPCP(int i) {
 	std::cout << "Inside PCP Thread!" << std::endl;
 	HANDLE hEvent;
-	DWORD status;
+	DWORD status = WAIT_OBJECT_0;
 	int NSEQ = 0;
 	std::string OP1, OP2, OP3;
 	int SLOT1, SLOT2, SLOT3;
@@ -386,11 +386,15 @@ DWORD WINAPI ThreadLeituraPCP(int i) {
 	hControla_leitura_pcp = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, "Controla_leitura_pcp");
 	CheckForError(hControla_leitura_pcp);
 
-	while (TRUE) {
+	HANDLE hHandles[2] = { hControla_leitura_pcp, hEscEvent };
+
+	while (status != WAIT_OBJECT_0 + 1) {
 
 		// Conquista semáforo
-		status = WaitForSingleObject(hControla_leitura_pcp, INFINITE);	 // Verifica se pode executar
-		CheckForError(status == WAIT_OBJECT_0);
+		//status = WaitForSingleObject(hControla_leitura_pcp, INFINITE);	 // Verifica se pode executar
+		//CheckForError(status == WAIT_OBJECT_0);
+		hHandles[0] = hControla_leitura_pcp;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
 
 		// Libera semáforo
 		CheckForError(ReleaseSemaphore(hControla_leitura_pcp, 1, &dwContagemPrevia));
@@ -399,10 +403,12 @@ DWORD WINAPI ThreadLeituraPCP(int i) {
 		int milisegundos = 1000 + rand() % 4001;  // Tempo entre 1000 e 5000 milisegundos
 		hEvent = CreateEvent(NULL, TRUE, FALSE, "EvTimeout");
 		CheckForError(hEvent);
-		status = WaitForSingleObject(hEvent, milisegundos);
-		if (status != WAIT_TIMEOUT) {
-			std::cout << "Error in ThreadLeituraPCP Timeout !!!" << std::endl;
-		}
+		//status = WaitForSingleObject(hEvent, milisegundos);
+		//if (status != WAIT_TIMEOUT) {
+		//	std::cout << "Error in ThreadLeituraPCP Timeout !!!" << std::endl;
+		//}
+		hHandles[0] = hEvent;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, milisegundos);
 
 		// Atribui variáveis
 		NSEQ = (NSEQ + 1) % 10000;		 // Incrementa numero de sequencia em 1

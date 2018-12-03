@@ -62,7 +62,7 @@ int main() {
 	
 	// Abre evento de Esc
 	hEscEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, "EscEvent");
-	CheckForError()
+	CheckForError(hEscEvent);
 
 	int nTecla;    // Guarda a tecla digitada pelo usuário
 	while (TRUE) {
