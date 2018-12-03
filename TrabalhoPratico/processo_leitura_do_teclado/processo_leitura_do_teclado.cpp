@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-#define _CHECKERROR	1	// Ativa função CheckForError
+//#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 #define	ESC				0x1B			//Tecla para encerrar o programa
 
@@ -152,6 +152,7 @@ int main() {
 		else if (nTecla == ESC) {
 			std::cout << "Encerra todas as tarefas" << std::endl;
 			SetEvent(hEscEvent);
+			break;
 		}
 		// Tecla invalida
 		else {

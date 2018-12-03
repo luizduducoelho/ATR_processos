@@ -1,7 +1,5 @@
 ﻿  tarefa_exibicao_dados.cpp
-c:\users\user\documents\atr\tp\trabalhopratico\trabalhopratico\tarefa_exibicao_dados.cpp(543): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+c:\users\user\documents\atr\tp\trabalhopratico\trabalhopratico\tarefa_exibicao_dados.cpp(544): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: see declaration of 'strcpy'
-  stdafx.cpp
-  Generating Code...
   TrabalhoPratico.vcxproj -> C:\Users\User\Documents\atr\tp\TrabalhoPratico\Debug\TrabalhoPratico.exe
   TrabalhoPratico.vcxproj -> C:\Users\User\Documents\atr\tp\TrabalhoPratico\Debug\TrabalhoPratico.pdb (Full PDB)

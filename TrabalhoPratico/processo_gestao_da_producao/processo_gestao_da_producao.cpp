@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-#define _CHECKERROR	1	// Ativa função CheckForError
+//#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 
 // Handle do semaforo de bloqueio da thread
@@ -17,6 +17,9 @@ HANDLE hControla_sistema_de_gestao;
 
 // Handle para evento de escrita assíncrona
 HANDLE hPipeEvent;
+
+// Handle para evento de ESC
+HANDLE hEscEvent;
 
 // Tarefa de gestão da produção
 int main() {
@@ -68,7 +71,7 @@ int main() {
 	else {
 		dwErrorCode = GetLastError();
 		if (dwErrorCode == ERROR_PIPE_CONNECTED) {
-			printf("Cliente já havia se conectado\n");
+			//printf("Cliente já havia se conectado\n");
 		}
 		else if (dwErrorCode == ERROR_NO_DATA) {
 			printf("Cliente fechou seu handle\n");
@@ -89,13 +92,29 @@ int main() {
 	OVERLAPPED overlap;
 	DWORD dwError;
 
+	// Abre evento de ESC
+	hEscEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, "EscEvent");
+	if (hEscEvent == INVALID_HANDLE_VALUE) {
+		std::cout << "HANDLE DO EVENTO ESC INVALIDO" << std::endl;
+	}
+	CheckForError(hEscEvent);
+	HANDLE hHandles[2] = { hControla_sistema_de_gestao, hEscEvent };
+
 	while (status != WAIT_OBJECT_0 + 1) {
 		// Conquista semáforo
-		status = WaitForSingleObject(hControla_sistema_de_gestao, INFINITE);	 // Verifica se pode executar
-		CheckForError(status == WAIT_OBJECT_0);
+		//status = WaitForSingleObject(hControla_sistema_de_gestao, INFINITE);	 // Verifica se pode executar
+		//CheckForError(status == WAIT_OBJECT_0);
+		hHandles[0] = hControla_sistema_de_gestao;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+		if (status == WAIT_OBJECT_0 + 1) {
+			std::cout << "Exiting Thread" << std::endl;
+			break;
+		}
+		CheckForError(status);
 
 		// Libera semáforo
-		CheckForError(ReleaseSemaphore(hControla_sistema_de_gestao, 1, &dwContagemPrevia));
+		//CheckForError(ReleaseSemaphore(hControla_sistema_de_gestao, 1, &dwContagemPrevia));
+		ReleaseSemaphore(hControla_sistema_de_gestao, 1, &dwContagemPrevia);
 
 		// Lê dados do cliente
 		DWORD dwBytesRead;
@@ -114,11 +133,19 @@ int main() {
 			if (dwError == ERROR_IO_PENDING) { // IO Assíncrono está enfileirado 
 											   //printf("iLeitura enfileirada\n");
 			}
-			else printf("Erro fatal\n");
+			else {
+				printf("Encerra thread. Erro na leitura\n");
+				break;
+			}
 		}
 		// Aguarda escrita
 		dwRet = WaitForSingleObject(hPipeEvent, INFINITE);
-		//CheckForError(dwRet);
+		/*hHandles[0] = hPipeEvent;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+		if (status == WAIT_OBJECT_0 + 1) {
+			std::cout << "Exiting Thread" << std::endl;
+			break;
+		}*/
 		std::string message(buffer);
 
 		// Extrai campos da mensagem
@@ -159,7 +186,7 @@ int main() {
 	CloseHandle(hPipeEvent);
 	CloseHandle(hMailslot);
 	CloseHandle(hControla_sistema_de_gestao);
+	CloseHandle(hEscEvent);
 
-	system("pause");
 	return 0;
 }

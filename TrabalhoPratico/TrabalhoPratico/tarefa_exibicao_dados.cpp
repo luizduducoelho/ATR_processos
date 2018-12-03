@@ -121,7 +121,7 @@ void escreve_lista_circular2(std::string message) {
 	//CheckForError(status == WAIT_OBJECT_0);
 	status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
 	if (status == WAIT_OBJECT_0 + 1) {
-		std::cout << "Returning from function " << std::endl;
+		//std::cout << "Returning from function " << std::endl;
 		return;
 	}
 	status = WaitForSingleObject(hMutex_lista2, INFINITE);				     // Garantir exclusão mútua
@@ -143,7 +143,7 @@ std::string le_lista_circular2() {
 	//CheckForError(status == WAIT_OBJECT_0);
 	status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
 	if (status == WAIT_OBJECT_0 + 1) {
-		std::cout << "Returning from function " << std::endl;
+		//std::cout << "Returning from function " << std::endl;
 		return std::string("EXIT_THREAD");
 	}
 	status = WaitForSingleObject(hMutex_lista2, INFINITE);				     // Garantir exclusão mútua
@@ -501,8 +501,9 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 			break;
 
 		// Aguarda um pipe
-		if (WaitNamedPipe(lpszPipename, NMPWAIT_WAIT_FOREVER) == 0)
-			printf("\nEsperando por uma instancia do pipe..."); // Temporização abortada: o pipe ainda não foi criado
+		if (WaitNamedPipe(lpszPipename, NMPWAIT_WAIT_FOREVER) == 0) {
+			//printf("\nEsperando por uma instancia do pipe..."); // Temporização abortada: o pipe ainda não foi criado
+		}
 	}
 
 	// Abre semáforo
