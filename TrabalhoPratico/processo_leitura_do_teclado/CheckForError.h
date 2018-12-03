@@ -33,7 +33,7 @@ __inline void CheckReturn(LPSTR FileName, int Line)
 #else			 // Modo Windows
 	MessageBox(NULL, OutBuffer, "ERRO", MB_ICONWARNING|MB_OK|MB_TASKMODAL|MB_SETFOREGROUND);
 #endif
-	exit(EXIT_FAILURE);
+	//exit(EXIT_FAILURE);
 #endif
 
 }

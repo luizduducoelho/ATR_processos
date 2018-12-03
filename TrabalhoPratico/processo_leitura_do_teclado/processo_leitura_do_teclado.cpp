@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-//#define _CHECKERROR	1	// Ativa função CheckForError
+#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 #define	ESC				0x1B			//Tecla para encerrar o programa
 
@@ -19,6 +19,9 @@ HANDLE hControla_leitura_pcp;
 HANDLE hControla_retirada_de_mensagens;
 HANDLE hControla_sistema_de_gestao;
 HANDLE hControla_sistema_de_exibicao_de_dados;
+
+// Evento de Esc
+HANDLE hEscEvent;
 
 // Tarefa de leitura do teclado
 int main() {
@@ -56,7 +59,10 @@ int main() {
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 	CheckForError(hMailslot != INVALID_HANDLE_VALUE);
-
+	
+	// Abre evento de Esc
+	hEscEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, "EscEvent");
+	CheckForError()
 
 	int nTecla;    // Guarda a tecla digitada pelo usuário
 	while (TRUE) {
@@ -145,6 +151,7 @@ int main() {
 		// Encerra todas as tarefas
 		else if (nTecla == ESC) {
 			std::cout << "Encerra todas as tarefas" << std::endl;
+			SetEvent(hEscEvent);
 		}
 		// Tecla invalida
 		else {
@@ -167,6 +174,7 @@ int main() {
 	CloseHandle(hControla_retirada_de_mensagens);
 	CloseHandle(hControla_sistema_de_gestao);
 	CloseHandle(hControla_sistema_de_exibicao_de_dados);
+	CloseHandle(hEscEvent);
 
 	return 0;
 }

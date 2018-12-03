@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-//#define _CHECKERROR	1	// Ativa função CheckForError
+#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 #define	ESC			0x1B
 
@@ -47,6 +47,9 @@ HANDLE hControla_leitura_pcp;
 HANDLE hControla_retirada_de_mensagens;
 HANDLE hControla_sistema_de_gestao;
 HANDLE hControla_sistema_de_exibicao_de_dados;
+
+// Handle para Evento Aborta
+HANDLE hEscEvent;						
 
 // Declaração do Handle para escrita assíncrona
 HANDLE hPipeEvent;
@@ -159,6 +162,10 @@ int main() {
 	// Criação do evento para escrita assincrona
 	hPipeEvent = CreateEvent(NULL, TRUE, FALSE, "PipeEvent");
 	CheckForError(hPipeEvent);
+
+	// Criação do evento
+	hEscEvent = CreateEvent(NULL, TRUE, FALSE, "EscEvent");
+	CheckForError(hEscEvent);
 
 	// Criação da thread de CLP
 	hThreads[0] = (HANDLE)_beginthreadex(NULL,
@@ -288,15 +295,8 @@ int main() {
 	CloseHandle(hOcupados_lista2);
 	CloseHandle(hMutex_lista2);
 
-	// Fecha Handles para os semáforos de leitura do teclado
-	CloseHandle(hControla_leitura_clp);
-	CloseHandle(hControla_leitura_pcp);
-	CloseHandle(hControla_retirada_de_mensagens);
-	CloseHandle(hControla_sistema_de_gestao);
-	CloseHandle(hControla_sistema_de_exibicao_de_dados);
-	
-	// Fecha o Handle para o evento de escrita assíncrona
-	CloseHandle(hPipeEvent);
+	// Fecha handle evento esc
+	CloseHandle(hEscEvent);
 
 	return 0;
 }
@@ -304,7 +304,7 @@ int main() {
 DWORD WINAPI ThreadLeituraCLP(int i) {
 	std::cout << "Inside CLP Thread!" << std::endl;
 	HANDLE hEvent;
-	DWORD status;
+	DWORD status = WAIT_OBJECT_0;
 	int NSEQ = 0;
 	float TZONA1, TZONA2, TZONA3, VOLUME, PRESSAO;
 	int TEMPO;
@@ -316,11 +316,15 @@ DWORD WINAPI ThreadLeituraCLP(int i) {
 	hControla_leitura_clp = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, "Controla_leitura_clp");
 	CheckForError(hControla_sistema_de_gestao);
 
-	while (TRUE) {
+	HANDLE hHandles[2] = { hControla_leitura_clp, hEscEvent };
+
+	while (status != WAIT_OBJECT_0 + 1){
 
 		// Conquista semáforo
-		status = WaitForSingleObject(hControla_leitura_clp, INFINITE);	 // Verifica se pode executar
-		CheckForError(status == WAIT_OBJECT_0);
+		//status = WaitForSingleObject(hControla_leitura_clp, INFINITE);	 // Verifica se pode executar
+		//CheckForError(status == WAIT_OBJECT_0);
+		hHandles[0] = hControla_leitura_clp;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
 
 		// Libera semáforo
 		CheckForError(ReleaseSemaphore(hControla_leitura_clp, 1, &dwContagemPrevia));
@@ -328,10 +332,12 @@ DWORD WINAPI ThreadLeituraCLP(int i) {
 		// Usando WaitForSingleObject como um temporizador de 500ms
 		hEvent = CreateEvent(NULL, TRUE, FALSE, "EvTimeout");
 		CheckForError(hEvent);
-		status = WaitForSingleObject(hEvent, 500);
-		if (status != WAIT_TIMEOUT) {
-			std::cout << "Error in ThreadLeituraCLP Timeout !!!" << std::endl;
-		}
+		//status = WaitForSingleObject(hEvent, 500);
+		//if (status != WAIT_TIMEOUT) {
+		//	std::cout << "Error in ThreadLeituraCLP Timeout !!!" << std::endl;
+		//}
+		hHandles[0] = hEvent;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, 500);
 
 		// Atribuindo variáveis
 		j += 1;
@@ -440,7 +446,7 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 	WaitNamedPipe(lpszPipename, NMPWAIT_WAIT_FOREVER);
 
 	// Conecta-se a um pipe
-	/*while (TRUE) // Espera conexão
+	while (TRUE) // Espera conexão
 	{
 		hPipe = CreateFile(
 			lpszPipename,   // nome do pipe 
@@ -460,25 +466,6 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 		// Aguarda um pipe
 		if (WaitNamedPipe(lpszPipename, NMPWAIT_WAIT_FOREVER) == 0)
 			printf("\nEsperando por uma instancia do pipe..."); // Temporização abortada: o pipe ainda não foi criado
-	}*/
-
-	// Conecta com o Mailslot
-	HANDLE hMailslot_gestao;
-	while (TRUE) {
-		hMailslot_gestao = CreateFile(
-			"\\\\.\\mailslot\\MyMailslot_gestao",
-			GENERIC_WRITE,
-			FILE_SHARE_READ,
-			NULL,
-			OPEN_EXISTING,
-			//FILE_FLAG_OVERLAPPED,
-			FILE_ATTRIBUTE_NORMAL,
-			NULL);
-
-		if (hMailslot_gestao != INVALID_HANDLE_VALUE) {
-			std::cout << "Conectou-se com o mailslot" << std::endl;
-			break;
-		}
 	}
 
 	// Abre semáforo
@@ -509,20 +496,12 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 										// Escreve no Pipe 
 			char buffer[56];
 			strcpy(buffer, message.c_str());
-			/*overlap.OffsetHigh = 0;
+			overlap.OffsetHigh = 0;
 			overlap.Offset = 56;
 			overlap.hEvent = hPipeEvent;
 			//WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, NULL);
 			WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, &overlap);
-			//std::cout << "Bytes escritos " << dwBytesWritten << std::endl;*/
-
-			// Escreve no mailslot
-			overlap.OffsetHigh = 0;
-			overlap.Offset = 56;
-			overlap.hEvent = hPipeEvent;
-			WriteFile(hMailslot_gestao, &buffer, sizeof(buffer), &dwBytesWritten, NULL);
-			std::cout << "Bytes escritos " << dwBytesWritten << std::endl;
-
+			//std::cout << "Bytes escritos " << dwBytesWritten << std::endl;
 		}
 		else {
 			std::cout << "CAPTURA DE MENSAGEM FALHOU!!! MENSAGEM CORROMPIDA " << std::endl;

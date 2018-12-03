@@ -27,18 +27,9 @@ int main() {
 	hMailslot = CreateMailslot(
 		"\\\\.\\mailslot\\MyMailslot",
 		0,
-		MAILSLOT_WAIT_FOREVER,			// Aguarda até ter mensagem
-		NULL);
-	CheckForError(hMailslot != INVALID_HANDLE_VALUE);
-
-	// Cria mailslot
-	HANDLE hMailslot_gestao;
-	hMailslot_gestao = CreateMailslot(
-		"\\\\.\\mailslot\\MyMailslot_gestao",
-		0,
 		0,			//Retorna imediatamente se não houver mensagem
 		NULL);
-	CheckForError(hMailslot_gestao != INVALID_HANDLE_VALUE);
+	CheckForError(hMailslot != INVALID_HANDLE_VALUE);
 
 	// Abre evento para escrita assíncrona
 	hPipeEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, "PipeEvent");
@@ -46,7 +37,7 @@ int main() {
 	DWORD dwRet;
 
 	// Cria um pipe de uma instância - Servidor de um pipe nomeado
-	/*HANDLE hPipe;
+	HANDLE hPipe;
 	hPipe = CreateNamedPipe(
 		"\\\\.\\pipe\\PipeGestaoDaProducao",
 		//PIPE_ACCESS_DUPLEX,	// Comunicação Full Duplex
@@ -65,11 +56,11 @@ int main() {
 	}
 	else {
 		std::cout << "Pipe criado com sucesso" << std::endl;
-	}*/
+	}
 
 	// Aguarda conexão do cliente
 	int bStatus;
-	/*DWORD dwErrorCode;	// Código de erro retornado por GetLastError()
+	DWORD dwErrorCode;	// Código de erro retornado por GetLastError()
 	bStatus = ConnectNamedPipe(hPipe, NULL);
 	if (bStatus) {
 		printf("Cliente se conectou com sucesso\n");
@@ -88,7 +79,7 @@ int main() {
 			CheckForError(FALSE);
 		}
 	}
-	std::cout << "Conexão do pipe foi estabelecida!!" << std::endl;*/
+	std::cout << "Conexão do pipe foi estabelecida!!" << std::endl;
 
 	// Abre semáforo
 	DWORD status;
@@ -109,7 +100,8 @@ int main() {
 		// Lê dados do cliente
 		DWORD dwBytesRead;
 		char buffer[56];
-		/*overlap.OffsetHigh = 0;
+		//bStatus = ReadFile(hPipe, &buffer, 56, &dwBytesRead, NULL);
+		overlap.OffsetHigh = 0;
 		overlap.Offset = 56;
 		overlap.hEvent = hPipeEvent;
 		bStatus = ReadFile(hPipe, &buffer, 56, &dwBytesRead, &overlap);
@@ -126,26 +118,6 @@ int main() {
 		}
 		// Aguarda escrita
 		dwRet = WaitForSingleObject(hPipeEvent, INFINITE);
-		//CheckForError(dwRet);
-		//std::string message(buffer);*/
-
-		// Checa por mensagem no mailslot
-		overlap.OffsetHigh = 0;
-		overlap.Offset = 56;
-		overlap.hEvent = hPipeEvent;
-		bStatus = ReadFile(hMailslot_gestao, &buffer, sizeof(buffer), &dwBytesRead, NULL);
-		//CheckForError(bStatus);
-		if (dwBytesRead != 0) {  // Chegou alguma mensagem!
-			if (std::string(buffer)[4] == '|') {
-				//std::cout << "mailslot:" << std::string(buffer) << std::endl;
-				//std::string message(buffer);
-			}
-			else {
-				std::cout << "Mensagem do Mailslot corrompida!" << std::endl;
-				//std::cout << "mailslot:" << std::string(buffer) << std::endl;
-			}
-		}
-		//dwRet = WaitForSingleObject(hPipeEvent, INFINITE);
 		//CheckForError(dwRet);
 		std::string message(buffer);
 
@@ -183,10 +155,9 @@ int main() {
 	}
 
 	// Fecha handles
-	//CloseHandle(hPipe);
+	CloseHandle(hPipe);
 	CloseHandle(hPipeEvent);
 	CloseHandle(hMailslot);
-	CloseHandle(hMailslot_gestao);
 	CloseHandle(hControla_sistema_de_gestao);
 
 	system("pause");
