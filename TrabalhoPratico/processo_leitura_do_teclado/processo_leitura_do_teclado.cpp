@@ -56,7 +56,7 @@ int main() {
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 	CheckForError(hMailslot != INVALID_HANDLE_VALUE);
-	
+
 
 	int nTecla;    // Guarda a tecla digitada pelo usuário
 	while (TRUE) {
@@ -170,4 +170,3 @@ int main() {
 
 	return 0;
 }
-

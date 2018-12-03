@@ -19,7 +19,7 @@ HANDLE hControla_sistema_de_gestao;
 HANDLE hPipeEvent;
 
 // Tarefa de gestão da produção
-int main(){	
+int main() {
 	std::string TIMESTAMP, OP1, OP2, OP3, SLOT1, SLOT2, SLOT3, full_console_message;
 
 	// Cria mailslot
@@ -31,18 +31,27 @@ int main(){
 		NULL);
 	CheckForError(hMailslot != INVALID_HANDLE_VALUE);
 
+	// Cria mailslot
+	HANDLE hMailslot_gestao;
+	hMailslot_gestao = CreateMailslot(
+		"\\\\.\\mailslot\\MyMailslot_gestao",
+		0,
+		0,			//Retorna imediatamente se não houver mensagem
+		NULL);
+	CheckForError(hMailslot_gestao != INVALID_HANDLE_VALUE);
+
 	// Abre evento para escrita assíncrona
 	hPipeEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, "PipeEvent");
 	CheckForError(hPipeEvent);
 	DWORD dwRet;
-	
+
 	// Cria um pipe de uma instância - Servidor de um pipe nomeado
 	HANDLE hPipe;
 	hPipe = CreateNamedPipe(
 		"\\\\.\\pipe\\PipeGestaoDaProducao",
 		//PIPE_ACCESS_DUPLEX,	// Comunicação Full Duplex
 		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,	// Comunicação Full Duplex assíncrona
-		//PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // Operações síncronas
+													//PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // Operações síncronas
 		PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,   // Operações assíncronas
 		1,			// Número de instâncias
 		0,			// nOutBufferSize
@@ -69,11 +78,11 @@ int main(){
 		dwErrorCode = GetLastError();
 		if (dwErrorCode == ERROR_PIPE_CONNECTED) {
 			printf("Cliente já havia se conectado\n");
-		} 
+		}
 		else if (dwErrorCode == ERROR_NO_DATA) {
 			printf("Cliente fechou seu handle\n");
 			return 0;
-		} 
+		}
 		else {
 			printf("Erro desconhecido\n");
 			CheckForError(FALSE);
@@ -108,11 +117,11 @@ int main(){
 		//CheckForError(bStatus);
 		if (bStatus) {
 			//printf("Leitura realizada sem overlap \n");
-		}  
+		}
 		else {
 			dwError = GetLastError();
 			if (dwError == ERROR_IO_PENDING) { // IO Assíncrono está enfileirado 
-				//printf("iLeitura enfileirada\n");
+											   //printf("iLeitura enfileirada\n");
 			}
 			else printf("Erro fatal\n");
 		}
@@ -120,6 +129,19 @@ int main(){
 		dwRet = WaitForSingleObject(hPipeEvent, INFINITE);
 		//CheckForError(dwRet);
 		std::string message(buffer);
+
+		// Checa por mensagem no mailslot
+		bStatus = ReadFile(hMailslot_gestao, &buffer, sizeof(buffer), &dwBytesRead, NULL);
+		//CheckForError(bStatus);
+		if (dwBytesRead != 0) {  // Chegou alguma mensagem!
+			if (std::string(buffer)[4] == '|') {
+				std::cout << "mailslot:" << std::string(buffer) << std::endl;
+			}
+			else {
+				std::cout << "Mensagem do Mailslot corrompida!" << std::endl;
+				std::cout << "mailslot:" << std::string(buffer) << std::endl;
+			}
+		}
 
 		// Extrai campos da mensagem
 		TIMESTAMP = message.substr(5, 8);
@@ -132,9 +154,9 @@ int main(){
 
 		// Constroi mensagem
 		full_console_message = "REF:" + TIMESTAMP + " "
-							   + "OP1:" + OP1 + " [" + SLOT1 + "]" + " "
-							   + "OP2:" + OP2 + " [" + SLOT2 + "]" + " "
-							   + "OP3:" + OP3 + " [" + SLOT3 + "]" + " ";
+			+ "OP1:" + OP1 + " [" + SLOT1 + "]" + " "
+			+ "OP2:" + OP2 + " [" + SLOT2 + "]" + " "
+			+ "OP3:" + OP3 + " [" + SLOT3 + "]" + " ";
 
 		// Exibe mensagem no console
 		std::cout << full_console_message << std::endl;
@@ -143,8 +165,8 @@ int main(){
 		char mailslot_buffer[6];
 		bStatus = ReadFile(hMailslot, &mailslot_buffer, sizeof(mailslot_buffer), &dwBytesRead, NULL);
 		//CheckForError(bStatus);
-		if (dwBytesRead!=0){  // Chegou alguma mensagem!
-			if (std::string(mailslot_buffer) == "Clear") {  
+		if (dwBytesRead != 0) {  // Chegou alguma mensagem!
+			if (std::string(mailslot_buffer) == "Clear") {
 				system("cls");  // Limpa console
 			}
 			else {
@@ -158,9 +180,9 @@ int main(){
 	CloseHandle(hPipe);
 	CloseHandle(hPipeEvent);
 	CloseHandle(hMailslot);
+	CloseHandle(hMailslot_gestao);
 	CloseHandle(hControla_sistema_de_gestao);
 
 	system("pause");
-    return 0;
+	return 0;
 }
-
