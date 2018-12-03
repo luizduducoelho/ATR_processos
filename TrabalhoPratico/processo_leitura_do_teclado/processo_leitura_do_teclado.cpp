@@ -44,6 +44,20 @@ int main() {
 	bool sistema_de_gestao_ligada = TRUE;
 	bool sistema_de_exibicao_de_dados_clp_ligada = TRUE;
 
+	// Conecta com o Mailslot
+	HANDLE hMailslot;
+	DWORD dwBytesWritten;
+	hMailslot = CreateFile(
+		"\\\\.\\mailslot\\MyMailslot",
+		GENERIC_WRITE,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	CheckForError(hMailslot != INVALID_HANDLE_VALUE);
+	
+
 	int nTecla;    // Guarda a tecla digitada pelo usuário
 	while (TRUE) {
 		//  Lê a tecla do usuário 
@@ -123,6 +137,10 @@ int main() {
 		// Limpeza de tela gestão da produção
 		else if (nTecla == 'c') {
 			std::cout << "Limpa tela do sistema de gestao da producao" << std::endl;
+			// Envia mensagem ao mailslot
+			char mailslot_buffer[] = "Clear";
+			WriteFile(hMailslot, &mailslot_buffer, sizeof(mailslot_buffer), &dwBytesWritten, NULL);
+
 		}
 		// Encerra todas as tarefas
 		else if (nTecla == ESC) {
@@ -142,6 +160,13 @@ int main() {
 			<< "*** " << sistema_de_exibicao_de_dados_clp_ligada << "                **" << std::endl << std::endl;
 	}
 
+	// Fecha handles
+	CloseHandle(hMailslot);
+	CloseHandle(hControla_leitura_clp);
+	CloseHandle(hControla_leitura_pcp);
+	CloseHandle(hControla_retirada_de_mensagens);
+	CloseHandle(hControla_sistema_de_gestao);
+	CloseHandle(hControla_sistema_de_exibicao_de_dados);
 
 	return 0;
 }

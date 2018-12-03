@@ -48,6 +48,9 @@ HANDLE hControla_retirada_de_mensagens;
 HANDLE hControla_sistema_de_gestao;
 HANDLE hControla_sistema_de_exibicao_de_dados;
 
+// Declaração do Handle para escrita assíncrona
+HANDLE hPipeEvent;
+
 // Função para retornar uma string alfanumérica
 static const char alphanum[] =
 "0123456789"
@@ -153,6 +156,10 @@ int main() {
 	hMutex_lista2 = CreateSemaphore(NULL, 1, 1, "Mutex_lista2");
 	CheckForError(hMutex_lista2);
 
+	// Criação do evento para escrita assincrona
+	hPipeEvent = CreateEvent(NULL, TRUE, FALSE, "PipeEvent");
+	CheckForError(hPipeEvent);
+
 	// Criação da thread de CLP
 	hThreads[0] = (HANDLE)_beginthreadex(NULL,
 				0,
@@ -220,28 +227,6 @@ int main() {
 		printf("Erro na criacao da thread de Exibição de dados! Erro = %d\n", errno);
 		exit(0);
 	}
-
-	// Criação do processo de leitura do teclado
-	/*int status;
-	STARTUPINFO si;				    // StartUpInformation para novo processo
-	PROCESS_INFORMATION NewProcess;	// Informações sobre novo processo criado
-	ZeroMemory(&si, sizeof(si));
-	si.cb = sizeof(si);	// Tamanho da estrutura em bytes
-	status = CreateProcess(
-		//"C:\\Users\\User\\Documents\\atr\\tp\\TrabalhoPratico\\Debug\\processo_gestao_da_producao.exe", // Caminho do arquivo executável
-		"..\\Debug\\processo_leitura_do_teclado.exe",
-		NULL,                       // Apontador p/ parâmetros de linha de comando
-		NULL,                       // Apontador p/ descritor de segurança
-		NULL,                       // Idem, threads do processo
-		FALSE,	                    // Herança de handles
-		CREATE_NEW_CONSOLE,			// Flags de criação
-		NULL,	                    // Herança do ambiente de execução
-		"..\\Debug\\",      // Diretório do arquivo executável
-							//"C:\\Program Files\\Mozilla Firefox",
-		&si,			            // lpStartUpInfo
-		&NewProcess);	            // lpProcessInformation
-	if (!status) printf("Erro na criacao do Processo de leitura do teclado! Codigo = %d\n", GetLastError());
-	else printf("Processo de leitura do teclado criado com sucesso!! \n");*/
 
 	// Criação do processo de gestão da produção
 	int status;
@@ -439,6 +424,7 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 	std::string message;
 	DWORD dwBytesWritten;
 	HANDLE hPipe;
+	OVERLAPPED overlap;
 	// Aguarda um Pipe
 	LPTSTR lpszPipename = "\\\\.\\pipe\\PipeGestaoDaProducao";
 	WaitNamedPipe(lpszPipename, NMPWAIT_WAIT_FOREVER);
@@ -453,7 +439,7 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 			0,              // sem compartilhamento 
 			NULL,           // lpSecurityAttributes
 			OPEN_EXISTING,  // dwCreationDistribution 
-			0,              // dwFlagsAndAttributes 
+			FILE_FLAG_OVERLAPPED, // acesso assíncrono			//0,  // dwFlagsAndAttributes 
 			NULL);          // hTemplate
 							//CheckForError(hPipe != INVALID_HANDLE_VALUE);
 
@@ -494,12 +480,21 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 			// Escreve no Pipe 
 			char buffer[56];
 			strcpy(buffer, message.c_str());
-			WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, NULL);
+			overlap.OffsetHigh = 0;
+			overlap.Offset = 56;
+			overlap.hEvent = hPipeEvent;
+			//WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, NULL);
+			WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, &overlap);
+			//std::cout << "Bytes escritos " << dwBytesWritten << std::endl;
 		}
 		else {
 			std::cout << "CAPTURA DE MENSAGEM FALHOU!!! MENSAGEM CORROMPIDA " << std::endl;
 		}
 	}
+
+	// Fecha o Pipe
+	FlushFileBuffers(hPipe);
+	DisconnectNamedPipe(hPipe);
 
 	// Fecha handles
 	CloseHandle(hPipe);
