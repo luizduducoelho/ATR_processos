@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-#define _CHECKERROR	1	// Ativa função CheckForError
+//#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 #define	ESC			0x1B
 
@@ -440,7 +440,7 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 	WaitNamedPipe(lpszPipename, NMPWAIT_WAIT_FOREVER);
 
 	// Conecta-se a um pipe
-	while (TRUE) // Espera conexão
+	/*while (TRUE) // Espera conexão
 	{
 		hPipe = CreateFile(
 			lpszPipename,   // nome do pipe 
@@ -460,19 +460,26 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 		// Aguarda um pipe
 		if (WaitNamedPipe(lpszPipename, NMPWAIT_WAIT_FOREVER) == 0)
 			printf("\nEsperando por uma instancia do pipe..."); // Temporização abortada: o pipe ainda não foi criado
-	}
+	}*/
 
 	// Conecta com o Mailslot
 	HANDLE hMailslot_gestao;
-	hMailslot_gestao = CreateFile(
-		"\\\\.\\mailslot\\MyMailslot_gestao",
-		GENERIC_WRITE,
-		FILE_SHARE_READ,
-		NULL,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL);
-	CheckForError(hMailslot_gestao != INVALID_HANDLE_VALUE);
+	while (TRUE) {
+		hMailslot_gestao = CreateFile(
+			"\\\\.\\mailslot\\MyMailslot_gestao",
+			GENERIC_WRITE,
+			FILE_SHARE_READ,
+			NULL,
+			OPEN_EXISTING,
+			//FILE_FLAG_OVERLAPPED,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL);
+
+		if (hMailslot_gestao != INVALID_HANDLE_VALUE) {
+			std::cout << "Conectou-se com o mailslot" << std::endl;
+			break;
+		}
+	}
 
 	// Abre semáforo
 	DWORD status;
@@ -502,14 +509,17 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 										// Escreve no Pipe 
 			char buffer[56];
 			strcpy(buffer, message.c_str());
-			overlap.OffsetHigh = 0;
+			/*overlap.OffsetHigh = 0;
 			overlap.Offset = 56;
 			overlap.hEvent = hPipeEvent;
 			//WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, NULL);
 			WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, &overlap);
-			//std::cout << "Bytes escritos " << dwBytesWritten << std::endl;
+			//std::cout << "Bytes escritos " << dwBytesWritten << std::endl;*/
 
 			// Escreve no mailslot
+			overlap.OffsetHigh = 0;
+			overlap.Offset = 56;
+			overlap.hEvent = hPipeEvent;
 			WriteFile(hMailslot_gestao, &buffer, sizeof(buffer), &dwBytesWritten, NULL);
 			std::cout << "Bytes escritos " << dwBytesWritten << std::endl;
 
