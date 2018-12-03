@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-#define _CHECKERROR	1	// Ativa função CheckForError
+//#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 #define	ESC			0x1B
 
@@ -72,8 +72,14 @@ std::string genRandomString(int size_of_string)  // Random string generator func
 void escreve_lista_circular1(std::string message) {
 	DWORD status;
 	LONG dwContagemPrevia;
-	status = WaitForSingleObject(hLivres_lista1, INFINITE);				     // Há posições livres na lista
-	CheckForError(status == WAIT_OBJECT_0);
+	HANDLE hHandles[2] = { hLivres_lista1, hEscEvent };
+	//status = WaitForSingleObject(hLivres_lista1, INFINITE);				     // Há posições livres na lista
+	//CheckForError(status == WAIT_OBJECT_0);
+	status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+	if (status == WAIT_OBJECT_0 + 1) {
+		//std::cout << "Returning from function " << std::endl;
+		return;
+	}
 	status = WaitForSingleObject(hMutex_lista1, INFINITE);				     // Garantir exclusão mútua
 	CheckForError(status == WAIT_OBJECT_0);
 	lista_circular_CLP_PCP[p_livre_lista1] = message;
@@ -88,8 +94,14 @@ std::string le_lista_circular1() {
 	DWORD status;
 	LONG dwContagemPrevia;
 	std::string message;
-	status = WaitForSingleObject(hOcupados_lista1, INFINITE);				 // Há posições para serem lidas da lista
-	CheckForError(status == WAIT_OBJECT_0);
+	HANDLE hHandles[2] = { hOcupados_lista1, hEscEvent };
+	//status = WaitForSingleObject(hOcupados_lista1, INFINITE);				 // Há posições para serem lidas da lista
+	//CheckForError(status == WAIT_OBJECT_0);
+	status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+	if (status == WAIT_OBJECT_0 + 1) {
+		//std::cout << "Returning from function " << std::endl;
+		return std::string("EXIT_THREAD");
+	}
 	status = WaitForSingleObject(hMutex_lista1, INFINITE);				     // Garantir exclusão mútua
 	CheckForError(status == WAIT_OBJECT_0);
 	message = lista_circular_CLP_PCP[p_ocupado_lista1];
@@ -104,8 +116,14 @@ std::string le_lista_circular1() {
 void escreve_lista_circular2(std::string message) {
 	DWORD status;
 	LONG dwContagemPrevia;
-	status = WaitForSingleObject(hLivres_lista2, INFINITE);				     // Há posições livres na lista
-	CheckForError(status == WAIT_OBJECT_0);
+	HANDLE hHandles[2] = { hLivres_lista2, hEscEvent };
+	//status = WaitForSingleObject(hLivres_lista2, INFINITE);				     // Há posições livres na lista
+	//CheckForError(status == WAIT_OBJECT_0);
+	status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+	if (status == WAIT_OBJECT_0 + 1) {
+		std::cout << "Returning from function " << std::endl;
+		return;
+	}
 	status = WaitForSingleObject(hMutex_lista2, INFINITE);				     // Garantir exclusão mútua
 	CheckForError(status == WAIT_OBJECT_0);
 	lista_circular_exibicao_dados[p_livre_lista2] = message;
@@ -120,8 +138,14 @@ std::string le_lista_circular2() {
 	DWORD status;
 	LONG dwContagemPrevia;
 	std::string message;
-	status = WaitForSingleObject(hOcupados_lista2, INFINITE);				 // Há posições para serem lidas da lista
-	CheckForError(status == WAIT_OBJECT_0);
+	HANDLE hHandles[2] = { hOcupados_lista2, hEscEvent };
+	//status = WaitForSingleObject(hOcupados_lista2, INFINITE);				 // Há posições para serem lidas da lista
+	//CheckForError(status == WAIT_OBJECT_0);
+	status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+	if (status == WAIT_OBJECT_0 + 1) {
+		std::cout << "Returning from function " << std::endl;
+		return std::string("EXIT_THREAD");
+	}
 	status = WaitForSingleObject(hMutex_lista2, INFINITE);				     // Garantir exclusão mútua
 	CheckForError(status == WAIT_OBJECT_0);
 	message = lista_circular_exibicao_dados[p_ocupado_lista2];
@@ -279,6 +303,7 @@ int main() {
 	// Aguarda as threads terminarem
 	dwRet = WaitForMultipleObjects(NThreads, hThreads, TRUE, INFINITE);
 	CheckForError(dwRet == WAIT_OBJECT_0);
+	std::cout << "Todas as threads finalizaram " << std::endl;
 
 	// Fechamento dos Handles de criação das Threads
 	for (int i = 0; i < NThreads; i++) {
@@ -338,6 +363,9 @@ DWORD WINAPI ThreadLeituraCLP(int i) {
 		//}
 		hHandles[0] = hEvent;
 		status = WaitForMultipleObjects(2, hHandles, FALSE, 500);
+		if (status == WAIT_OBJECT_0 + 1) {
+			std::cout << "Exiting Thread" << std::endl;
+		}
 
 		// Atribuindo variáveis
 		j += 1;
@@ -409,6 +437,9 @@ DWORD WINAPI ThreadLeituraPCP(int i) {
 		//}
 		hHandles[0] = hEvent;
 		status = WaitForMultipleObjects(2, hHandles, FALSE, milisegundos);
+		if (status == WAIT_OBJECT_0 + 1) {
+			std::cout << "Exiting Thread" << std::endl;
+		}
 
 		// Atribui variáveis
 		NSEQ = (NSEQ + 1) % 10000;		 // Incrementa numero de sequencia em 1
@@ -475,16 +506,24 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 	}
 
 	// Abre semáforo
-	DWORD status;
+	DWORD status = WAIT_OBJECT_0;
 	LONG dwContagemPrevia;
 	hControla_retirada_de_mensagens = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, "Controla_retirada_de_mensagens");
 	CheckForError(hControla_retirada_de_mensagens);
 
-	while (TRUE) {
+	HANDLE hHandles[2] = { hControla_retirada_de_mensagens, hEscEvent };
+
+	while (status != WAIT_OBJECT_0 + 1) {
 
 		// Conquista semáforo
-		status = WaitForSingleObject(hControla_retirada_de_mensagens, INFINITE);	 // Verifica se pode executar
-		CheckForError(status == WAIT_OBJECT_0);
+		//status = WaitForSingleObject(hControla_retirada_de_mensagens, INFINITE);	 // Verifica se pode executar
+		//CheckForError(status == WAIT_OBJECT_0);
+		hHandles[0] = hControla_retirada_de_mensagens;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+		if (status == WAIT_OBJECT_0 + 1) {
+			std::cout << "Exiting Thread" << std::endl;
+			break;
+		}
 
 		// Libera semáforo
 		CheckForError(ReleaseSemaphore(hControla_retirada_de_mensagens, 1, &dwContagemPrevia));
@@ -509,6 +548,10 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 			WriteFile(hPipe, &buffer, sizeof(buffer), &dwBytesWritten, &overlap);
 			//std::cout << "Bytes escritos " << dwBytesWritten << std::endl;
 		}
+		else if (message == "EXIT_THREAD") {
+			std::cout << "Exiting Thread" << std::endl;
+			break;
+		}
 		else {
 			std::cout << "CAPTURA DE MENSAGEM FALHOU!!! MENSAGEM CORROMPIDA " << std::endl;
 		}
@@ -532,22 +575,34 @@ DWORD WINAPI ThreadExibicaoDeDados(int i) {
 	std::string NSEQ, TIMESTAMP, TZ1, TZ2, TZ3, V, P, TEMPO, full_console_message;
 
 	// Abre semáforo
-	DWORD status;
+	DWORD status = WAIT_OBJECT_0;
 	LONG dwContagemPrevia;
 	hControla_sistema_de_exibicao_de_dados = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, "Controla_sistema_de_exibicao_de_dados");
 	CheckForError(hControla_sistema_de_exibicao_de_dados);
 
-	while (TRUE) {
+	HANDLE hHandles[2] = { hControla_sistema_de_exibicao_de_dados, hEscEvent };
+
+	while (status != WAIT_OBJECT_0 + 1) {
 
 		// Conquista semáforo
-		status = WaitForSingleObject(hControla_sistema_de_exibicao_de_dados, INFINITE);	 // Verifica se pode executar
-		CheckForError(status == WAIT_OBJECT_0);
+		//status = WaitForSingleObject(hControla_sistema_de_exibicao_de_dados, INFINITE);	 // Verifica se pode executar
+		//CheckForError(status == WAIT_OBJECT_0);
+		hHandles[0] = hControla_sistema_de_exibicao_de_dados;
+		status = WaitForMultipleObjects(2, hHandles, FALSE, INFINITE);
+		if (status == WAIT_OBJECT_0 + 1) {
+			std::cout << "Exiting Thread" << std::endl;
+			break;
+		}
 
 		// Libera semáforo
 		CheckForError(ReleaseSemaphore(hControla_sistema_de_exibicao_de_dados, 1, &dwContagemPrevia));
 
 		//Retira mensagens da lista circular
 		message = le_lista_circular2();
+		if (message == "EXIT_THREAD") {
+			std::cout << "Exiting Thread" << std::endl;
+			break;
+		}
 
 		// Extrai campos da mensagem
 		NSEQ = message.substr(0, 6);

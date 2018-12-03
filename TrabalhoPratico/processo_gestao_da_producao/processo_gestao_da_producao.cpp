@@ -82,14 +82,14 @@ int main() {
 	std::cout << "Conexão do pipe foi estabelecida!!" << std::endl;
 
 	// Abre semáforo
-	DWORD status;
+	DWORD status = WAIT_OBJECT_0;
 	LONG dwContagemPrevia;
 	hControla_sistema_de_gestao = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, "Controla_sistema_de_gestao");
 	CheckForError(hControla_sistema_de_gestao);
 	OVERLAPPED overlap;
 	DWORD dwError;
 
-	while (TRUE) {
+	while (status != WAIT_OBJECT_0 + 1) {
 		// Conquista semáforo
 		status = WaitForSingleObject(hControla_sistema_de_gestao, INFINITE);	 // Verifica se pode executar
 		CheckForError(status == WAIT_OBJECT_0);
