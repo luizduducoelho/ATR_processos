@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-//#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 #define	ESC				0x1B			//Tecla para encerrar o programa
 

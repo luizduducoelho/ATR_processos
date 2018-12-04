@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-//#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 
 // Handle do semaforo de bloqueio da thread
@@ -180,6 +179,10 @@ int main() {
 		}
 
 	}
+
+	// Fecha o Pipe
+	FlushFileBuffers(hPipe);
+	DisconnectNamedPipe(hPipe);
 
 	// Fecha handles
 	CloseHandle(hPipe);

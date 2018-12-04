@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 #include <time.h>  
-//#define _CHECKERROR	1	// Ativa função CheckForError
 #include "CheckForError.h"
 #define	ESC			0x1B
 
@@ -266,8 +265,7 @@ int main() {
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);	// Tamanho da estrutura em bytes
 	status = CreateProcess(
-		//"C:\\Users\\User\\Documents\\atr\\tp\\TrabalhoPratico\\Debug\\processo_gestao_da_producao.exe", // Caminho do arquivo executável
-		"..\\Debug\\processo_gestao_da_producao.exe",
+		"..\\Debug\\processo_gestao_da_producao.exe",// Caminho do arquivo executável
 		NULL,                       // Apontador p/ parâmetros de linha de comando
 		NULL,                       // Apontador p/ descritor de segurança
 		NULL,                       // Idem, threads do processo
@@ -322,6 +320,13 @@ int main() {
 
 	// Fecha handle evento esc
 	CloseHandle(hEscEvent);
+
+	// Fecha handles dos semáforos de leitura do teclado
+	CloseHandle(hControla_leitura_clp);
+	CloseHandle(hControla_leitura_pcp);
+	CloseHandle(hControla_retirada_de_mensagens);
+	CloseHandle(hControla_sistema_de_gestao);
+	CloseHandle(hControla_sistema_de_exibicao_de_dados);
 
 	return 0;
 }
@@ -557,10 +562,6 @@ DWORD WINAPI ThreadCapturaDeMensagens(int i) {
 			std::cout << "CAPTURA DE MENSAGEM FALHOU!!! MENSAGEM CORROMPIDA " << std::endl;
 		}
 	}
-
-	// Fecha o Pipe
-	FlushFileBuffers(hPipe);
-	DisconnectNamedPipe(hPipe);
 
 	// Fecha handles
 	CloseHandle(hPipe);
